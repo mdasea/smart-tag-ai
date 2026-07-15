@@ -1,0 +1,52 @@
+# Dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# Build output
+build/
+dist/
+.next/
+coverage/
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Prisma
+prisma/*.db
+prisma/*.db-journal
+
+# Hermes Agent
+.hermes/sessions/
+.hermes/logs/
+.hermes/state.db
+.hermes/auth.json
+.hermes/audio_cache/
+.hermes/plans/
+
+# Obsidian
+.obsidian/workspace.json
+.obsidian/workspace-mobile.json
+.trash/
+
+# OS
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# IDE
+.idea/
+.vscode/
+
+# Shopify
+.shopify/
+node_modules/.cache/
+
+# n8n
+n8n/.n8n/
+
+# Docs
+docs/demo.mp4
+docs/demo.gif

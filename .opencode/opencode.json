@@ -1,0 +1,25 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "model": "anthropic/claude-3-5-sonnet",
+  "permission": {
+    "bash": "ask",
+    "edit": "allow",
+    "websearch": "allow"
+  },
+  "ignore": [
+    ".hermes/**",
+    ".obsidian/**",
+    "smart-tag-ai-docs/.obsidian/**"
+  ],
+  "mcpServers": {
+    "obsidian": {
+      "command": "npx",
+      "args": ["-y", "obsidian-mcp-server"],
+      "env": {
+        "OBSIDIAN_API_KEY": "REPLACE_WITH_YOUR_OBSIDIAN_LOCAL_REST_API_KEY",
+        "OBSIDIAN_HOST": "127.0.0.1",
+        "OBSIDIAN_PORT": "27124"
+      }
+    }
+  }
+}
