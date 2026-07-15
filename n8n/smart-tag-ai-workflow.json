@@ -1,119 +1,334 @@
 {
-  "name": "SmartTag AI — Supplier Sync Pipeline",
+  "name": "SmartTag AI Pipeline",
   "nodes": [
     {
-      "id": "cron-trigger",
-      "name": "Weekly Check",
-      "type": "n8n-nodes-base.cron",
-      "typeVersion": 1,
-      "position": [200, 300],
+      "id": "c1a2b3e4-0001-4000-8000-000000000001",
+      "name": "Cron Trigger",
+      "type": "n8n-nodes-base.cronTrigger",
+      "typeVersion": 1.2,
+      "position": [250, 300],
       "parameters": {
-        "rule": "cron",
-        "value": "0 0 * * 1"
+        "triggerTimes": {
+          "item": [
+            {
+              "mode": "everyWeek",
+              "hour": 0,
+              "minute": 0,
+              "weekday": 1
+            }
+          ]
+        }
       }
     },
     {
-      "id": "firecrawl-scraper",
-      "name": "Firecrawl Scraper",
+      "id": "c1a2b3e4-0002-4000-8000-000000000002",
+      "name": "Firecrawl Scrape",
       "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4,
-      "position": [420, 300],
+      "typeVersion": 4.2,
+      "position": [450, 300],
       "parameters": {
         "method": "POST",
         "url": "https://api.firecrawl.dev/v1/scrape",
         "authentication": "genericCredentialType",
         "genericAuthType": "httpHeaderAuth",
         "sendBody": true,
-        "specifyBody": "json",
-        "jsonBody": "{\n  \"url\": \"https://supplier-example.com/products/target\",\n  \"formats\": [\"markdown\"]\n}"
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "url",
+              "value": "={{ $json.url || $parameter.targetUrl }}"
+            },
+            {
+              "name": "formats",
+              "value": {
+                "mode": "rawList",
+                "list": [
+                  {
+                    "value": "markdown"
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        "options": {
+          "timeout": 30000
+        }
       },
       "credentials": {
         "httpHeaderAuth": {
-          "id": "firecrawl-api-key",
-          "name": "Firecrawl API Key"
+          "id": "1",
+          "name": "Firecrawl API"
         }
       }
     },
     {
-      "id": "opencode-go-parser",
-      "name": "OpenCode Go Parser",
+      "id": "c1a2b3e4-0003-4000-8000-000000000003",
+      "name": "Extract Markdown",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [650, 300],
+      "parameters": {
+        "language": "javaScript",
+        "code": "// Extract markdown from Firecrawl response\nconst items = $input.all();\nreturn items.map(item => {\n  const data = item.json;\n  return {\n    json: {\n      markdown: data.data?.markdown || data.markdown || '',\n      url: data.data?.url || data.url || data.metadata?.url || '',\n      title: data.data?.title || data.title || ''\n    }\n  };\n});"
+      }
+    },
+    {
+      "id": "c1a2b3e4-0004-4000-8000-000000000004",
+      "name": "OpenCode Go Normalizer",
       "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4,
-      "position": [640, 300],
+      "typeVersion": 4.2,
+      "position": [850, 300],
       "parameters": {
         "method": "POST",
         "url": "https://opencode.ai/zen/go/v1/chat/completions",
         "authentication": "genericCredentialType",
         "genericAuthType": "httpHeaderAuth",
         "sendBody": true,
-        "specifyBody": "json",
-        "jsonBody": "={\n  \"model\": \"qwen3.7-plus\",\n  \"messages\": [\n    {\n      \"role\": \"system\",\n      \"content\": \"Parse the following product markdown into a structured JSON object with keys: title, price, body_html. Return ONLY valid JSON, no extra text.\"\n    },\n    {\n      \"role\": \"user\",\n      \"content\": \"{{ $json.data.markdown }}\"\n    }\n  ],\n  \"temperature\": 0.1,\n  \"max_tokens\": 500\n}",
-        "options": {}
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "model",
+              "value": "qwen3.7-plus"
+            },
+            {
+              "name": "messages",
+              "value": {
+                "mode": "rawList",
+                "list": [
+                  {
+                    "value": {
+                      "role": "system",
+                      "content": "You are a product data extractor. Given markdown from a product page, extract the following fields as JSON: title (string), price (number), body_html (string, HTML description of the product for Shopify), vendor (string), tags (array of strings), product_type (string, category of product). Only output valid JSON. No markdown fences, no explanation."
+                    }
+                  },
+                  {
+                    "value": {
+                      "role": "user",
+                      "content": "={{ $json.markdown }}"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "name": "temperature",
+              "value": 0.1
+            },
+            {
+              "name": "response_format",
+              "value": {
+                "type": "json_object"
+              }
+            }
+          ]
+        },
+        "options": {
+          "timeout": 60000
+        }
       },
       "credentials": {
         "httpHeaderAuth": {
-          "id": "opencode-go-api-key",
-          "name": "OpenCode Go API Key"
+          "id": "2",
+          "name": "OpenCode Go API"
         }
       }
     },
     {
-      "id": "shopify-ingest",
-      "name": "Push to Shopify App",
+      "id": "c1a2b3e4-0005-4000-8000-000000000005",
+      "name": "Parse LLM Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1050, 300],
+      "parameters": {
+        "language": "javaScript",
+        "code": "// Parse the OpenAI-compatible LLM response to extract structured product data\nconst items = $input.all();\nreturn items.map(item => {\n  const choice = item.json?.choices?.[0];\n  let productData = {};\n  try {\n    const content = choice?.message?.content || '{}';\n    productData = JSON.parse(content);\n  } catch (e) {\n    // Fallback: return raw if parsing fails\n    productData = { error: 'Failed to parse LLM response', raw: item.json };\n  }\n  return {\n    json: {\n      title: productData.title || 'Unknown Product',\n      price: productData.price || 0,\n      body_html: productData.body_html || '',\n      vendor: productData.vendor || 'SmartTag Vendor',\n      tags: productData.tags || [],\n      product_type: productData.product_type || 'General',\n      _raw_url: $json.url || ''\n    }\n  };\n});"
+      }
+    },
+    {
+      "id": "c1a2b3e4-0006-4000-8000-000000000006",
+      "name": "Shopify Push",
       "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4,
-      "position": [860, 200],
+      "typeVersion": 4.2,
+      "position": [1250, 200],
       "parameters": {
         "method": "POST",
-        "url": "https://your-shopify-app.ngrok.io/api/ingest-product",
+        "url": "https://{{ YOUR_APP_DOMAIN }}/api/ingest-product",
         "authentication": "genericCredentialType",
         "genericAuthType": "httpHeaderAuth",
         "sendBody": true,
-        "specifyBody": "json",
-        "jsonBody": "={\n  \"title\": \"{{ $json.choices[0].message.content.title }}\",\n  \"body_html\": \"{{ $json.choices[0].message.content.body_html }}\",\n  \"price\": \"{{ $json.choices[0].message.content.price }}\"\n}"
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "title",
+              "value": "={{ $json.title }}"
+            },
+            {
+              "name": "price",
+              "value": "={{ $json.price }}"
+            },
+            {
+              "name": "body_html",
+              "value": "={{ $json.body_html }}"
+            },
+            {
+              "name": "vendor",
+              "value": "={{ $json.vendor }}"
+            },
+            {
+              "name": "tags",
+              "value": "={{ $json.tags.join(', ') }}"
+            },
+            {
+              "name": "product_type",
+              "value": "={{ $json.product_type }}"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 30000
+        }
       },
       "credentials": {
         "httpHeaderAuth": {
-          "id": "app-ingest-secret",
-          "name": "App Ingestion Secret"
+          "id": "3",
+          "name": "Shopify App Auth"
         }
       }
     },
     {
-      "id": "ghl-sync",
-      "name": "Sync to GoHighLevel",
+      "id": "c1a2b3e4-0007-4000-8000-000000000007",
+      "name": "GoHighLevel Sync",
       "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4,
-      "position": [860, 400],
+      "typeVersion": 4.2,
+      "position": [1250, 450],
       "parameters": {
         "method": "POST",
         "url": "https://rest.gohighlevel.com/v1/contacts/",
         "authentication": "genericCredentialType",
         "genericAuthType": "httpHeaderAuth",
         "sendBody": true,
-        "specifyBody": "json",
-        "jsonBody": "={\n  \"email\": \"supplier-notifications@example.com\",\n  \"tags\": [\"catalog-synced\"],\n  \"customFields\": {\n    \"last_product_synced\": \"{{ $json.choices[0].message.content.title }}\"\n  }\n}"
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "email",
+              "value": "pipeline@smarttag.ai"
+            },
+            {
+              "name": "tags",
+              "value": {
+                "mode": "rawList",
+                "list": [
+                  { "value": "smart-tag-ai" },
+                  { "value": "product-synced" },
+                  { "value": "={{ $json.product_type }}" }
+                ]
+              }
+            },
+            {
+              "name": "customField",
+              "value": {
+                "mode": "json",
+                "json": "={{ JSON.stringify({ last_synced_product: $json.title, last_synced_at: new Date().toISOString() }) }}"
+              }
+            }
+          ]
+        },
+        "options": {
+          "timeout": 30000
+        }
       },
       "credentials": {
         "httpHeaderAuth": {
-          "id": "ghl-api-key",
-          "name": "GoHighLevel API Key"
+          "id": "4",
+          "name": "GoHighLevel API"
         }
       }
     }
   ],
   "connections": {
-    "Weekly Check": {
-      "main": [[{ "node": "Firecrawl Scraper", "type": "main", "index": 0 }]]
-    },
-    "Firecrawl Scraper": {
-      "main": [[{ "node": "OpenCode Go Parser", "type": "main", "index": 0 }]]
-    },
-    "OpenCode Go Parser": {
+    "Cron Trigger": {
       "main": [
-        [{ "node": "Push to Shopify App", "type": "main", "index": 0 }],
-        [{ "node": "Sync to GoHighLevel", "type": "main", "index": 0 }]
+        [
+          {
+            "node": "Firecrawl Scrape",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Firecrawl Scrape": {
+      "main": [
+        [
+          {
+            "node": "Extract Markdown",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Markdown": {
+      "main": [
+        [
+          {
+            "node": "OpenCode Go Normalizer",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenCode Go Normalizer": {
+      "main": [
+        [
+          {
+            "node": "Parse LLM Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse LLM Response": {
+      "main": [
+        [
+          {
+            "node": "Shopify Push",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "GoHighLevel Sync",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Shopify Push": {
+      "main": [
+        []
+      ]
+    },
+    "GoHighLevel Sync": {
+      "main": [
+        []
       ]
     }
-  }
+  },
+  "settings": {
+    "timezone": "UTC",
+    "saveManualExecutions": true,
+    "callerPolicy": "workflowsFromSameOwner"
+  },
+  "staticData": null,
+  "tags": [
+    "smart-tag-ai",
+    "pipeline",
+    "shopify",
+    "firecrawl"
+  ],
+  "pinData": {}
 }

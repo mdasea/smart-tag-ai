@@ -89,3 +89,29 @@ Starting with Phase 3, execution shifted to an autonomous subagent pipeline:
   5. GoHighLevel sync (parallel branch)
 - **Documentation:** `n8n/README.md` with credential setup and troubleshooting
 - **Next:** User imports JSON into VPS n8n instance
+# Phase 4: n8n Workflow (complete)
+
+- **Install:** n8n v2.30.5 from npm. Docker is also available. Runs on port 5678.
+- **Files created:**
+  - `n8n/README.md` — full documentation with all endpoints, credential setup, testing guide
+  - `n8n/smart-tag-ai-workflow.json` — validated n8n export with 7 nodes:
+    1. Cron Trigger (weekly Monday 00:00)
+    2. Firecrawl Scrape (HTTP POST to api.firecrawl.dev)
+    3. Extract Markdown (Code node — normalizes Firecrawl response)
+    4. OpenCode Go Normalizer (HTTP POST to /v1/chat/completions, qwen3.7-plus)
+    5. Parse LLM Response (Code node — extracts JSON from chat completion)
+    6. Shopify Push Connector (HTTP POST to app's /api/ingest-product)
+    7. GoHighLevel Sync (HTTP POST to rest.gohighlevel.com/v1/contacts/)
+- **Pipeline structure:** Sequential chain with parallel fan-out (Shopify + GHL run concurrently)
+- **Validation:** JSON parsed and verified — 7 nodes with correct connections, all node names confirmed
+- **Obsidian docs:** `02 - n8n Workflow.md` fully rewritten with installation, credential setup, all endpoints, and import instructions
+- **To activate:** User imports JSON into their VPS n8n instance, creates 4 Header Auth credentials, and activates the workflow
+
+
+### Phase 4: n8n Workflow (deployed via MCP)
+- **Deployed directly to VPS** via n8n MCP `create_workflow_from_code`
+- **Workflow ID:** `3iVv6KUSGPCcbEbH`
+- **URL:** https://n8n.monching-desierto.space/workflow/3iVv6KUSGPCcbEbH
+- **Nodes:** Schedule Trigger → Firecrawl → OpenCode Go → Shopify Push (parallel with GHL Sync)
+- **Status:** Needs manual credential configuration for 4 HTTP nodes
+- **Local file:** `n8n/smart-tag-ai-workflow.json` (kept as backup/portable version)

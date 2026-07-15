@@ -4,37 +4,17 @@
     "type": "split",
     "children": [
       {
-        "id": "5cf2f7b718151b6f",
+        "id": "e73d07a10822bd39",
         "type": "tabs",
         "children": [
           {
-            "id": "342865d75559084d",
+            "id": "89af320c9c713236",
             "type": "leaf",
             "state": {
-              "type": "graph",
+              "type": "empty",
               "state": {},
-              "icon": "lucide-git-fork",
-              "title": "Graph view"
-            }
-          }
-        ]
-      },
-      {
-        "id": "e60eee12047317c1",
-        "type": "tabs",
-        "children": [
-          {
-            "id": "866e6c6aaa8915e1",
-            "type": "leaf",
-            "state": {
-              "type": "markdown",
-              "state": {
-                "file": "01 - Shopify App Spec.md",
-                "mode": "source",
-                "source": false
-              },
               "icon": "lucide-file",
-              "title": "01 - Shopify App Spec"
+              "title": "New tab"
             }
           }
         ]
@@ -199,18 +179,18 @@
       "bases:Create new base": false
     }
   },
-  "active": "bbb6f24f343027b5",
+  "active": "89af320c9c713236",
   "lastOpenFiles": [
+    "00 - Project Overview.md",
+    "02 - n8n Workflow.md",
+    "03 - Agent Configuration.md",
+    "01 - Shopify App Spec.md",
     "30 - API Reference.md",
     "20 - Architecture Decisions.md",
     "10 - Progress Log.md",
-    "00 - Project Overview.md",
     "_archive",
     "99 - Quick Commands.md",
     "_archive/Welcome.md",
-    "01 - Shopify App Spec.md",
-    "00 - System Overview.md",
-    "02 - n8n Workflow.md",
-    "03 - Agent Configuration.md"
+    "00 - System Overview.md"
   ]
 }

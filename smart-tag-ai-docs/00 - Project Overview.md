@@ -5,7 +5,7 @@
 ## 🗺️ Architecture
 
 ```
-[Supplier Site] → [Firecrawl] → [n8n Orchestrator]
+[Supplier Site] → [Firecrawl] → [n8n Orchestrator (VPS)]
                                     ├── [OpenCode Go Parser]
                                     ├── [Shopify App] → [Shopify Store]
                                     ├── [GoHighLevel CRM]
@@ -17,6 +17,7 @@
 - **Revenue:** $0.10 per product (first 10 free per merchant)
 - **AI:** OpenCode Go API (`qwen3.7-plus`, text-only)
 - **Stack:** React Router v7 + TypeScript + Prisma + SQLite + Polaris
+- **Orchestration:** n8n (user's VPS instance)
 
 ## 📚 Documentation Index
 
@@ -24,7 +25,7 @@
 | Doc | Description |
 |-----|-------------|
 | [[01 - Shopify App Spec]] | Routes, database schema, billing, API endpoints |
-| [[02 - n8n Workflow]] | Pipeline architecture, 5 micro-components |
+| [[02 - n8n Workflow]] | Pipeline architecture, 5 micro-components, VPS setup |
 | [[03 - Agent Configuration]] | Hermes + OpenCode setup, MCP, autonomous agents |
 
 ### Progress & Decisions
@@ -47,7 +48,7 @@
 | 1 — Shopify Scaffold | ✅ | React Router app, Prisma, shopify.app.toml (billing + scopes) |
 | 2 — Core Backend | ✅ | PendingTag schema, webhook handler (OpenCode Go), ingestion endpoint |
 | 3 — Approval Panel | ✅ | Polaris DataTable, GraphQL + billing, approve/reject |
-| 4 — n8n Workflow | ⏳ | Builder dispatched (subagent running) |
+| 4 — n8n Workflow | ✅ | Workflow JSON + docs (import into VPS) |
 | 5 — Testing | 📋 | Planned |
 | 6 — Portfolio Polish | 📋 | Planned |
 
