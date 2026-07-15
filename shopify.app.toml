@@ -1,5 +1,9 @@
-# This file stores configurations for your Shopify app.
-client_id = ""
+# Learn more about configuring your app at https://shopify.dev/docs/apps/tools/cli/configuration
+
+client_id = "7665c4437ae55abc4fbb61fbb518551c"
+name = "SmartTag AI"
+application_url = "https://shopify.dev/apps/default-app-home"
+embedded = true
 
 [access_scopes]
 # Learn more at https://shopify.dev/docs/apps/tools/cli/configuration#access_scopes
@@ -9,33 +13,23 @@ scopes = "read_products, write_products"
 "Pay-As-You-Go AI Tagging" = { amount = 10.00, currencyCode = "USD", interval = "Usage", terms = "$0.10 per product optimized after the first 10 free products." }
 
 [webhooks]
-api_version = "2026-07"
+api_version = "2026-10"
 
-  # Handled by: /app/routes/webhooks.app.uninstalled.tsx
   [[webhooks.subscriptions]]
   uri = "/webhooks/app/uninstalled"
-  topics = ["app/uninstalled"]
+  topics = [ "app/uninstalled" ]
 
-  # Handled by: /app/routes/webhooks.app.scopes_update.tsx
   [[webhooks.subscriptions]]
-  topics = [ "app/scopes_update" ]
   uri = "/webhooks/app/scopes_update"
+  topics = [ "app/scopes_update" ]
 
-  # Product create webhook — triggers AI tag generation
   [[webhooks.subscriptions]]
-  topics = ["products/create"]
   uri = "/api/webhooks"
+  topics = [ "products/create" ]
 
-  # Mandatory compliance topic for public apps only
-  # See: https://shopify.dev/docs/apps/build/privacy-law-compliance
-  # [[webhooks.subscriptions]]
-  # uri = "/webhooks/customers/data_request"
-  # compliance_topics = ["customers/data_request"]
+[auth]
+redirect_urls = [ "https://shopify.dev/apps/default-app-home/api/auth" ]
 
-  # [[webhooks.subscriptions]]
-  # uri = "/webhooks/customers/redact"
-  # compliance_topics = ["customers/redact"]
-
-  # [[webhooks.subscriptions]]
-  # uri = "/webhooks/shop/redact"
-  # compliance_topics = ["shop/redact"]
+[build]
+include_config_on_deploy = true
+automatically_update_urls_on_dev = true
