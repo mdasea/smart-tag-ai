@@ -9,9 +9,6 @@ embedded = true
 # Learn more at https://shopify.dev/docs/apps/tools/cli/configuration#access_scopes
 scopes = "read_products, write_products"
 
-[billing]
-"Pay-As-You-Go AI Tagging" = { amount = 10.00, currencyCode = "USD", interval = "Usage", terms = "$0.10 per product optimized after the first 10 free products." }
-
 [webhooks]
 api_version = "2026-10"
 
