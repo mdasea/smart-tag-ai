@@ -116,3 +116,24 @@ Empty body, thrown as HTTP exception.
 | Rate | $0.10 per approved product |
 | First 10 | Free (no charge) |
 | Billing API | `billing.createUsageRecord({ price: 0.10 })` |
+
+
+---
+
+## GET /app (Approval Panel)
+
+**Purpose:** Merchant-facing UI to review and approve AI-generated tags.
+**Auth:** Shopify Admin authentication via `authenticate.admin()`.
+**Billing gate:** `billing.require()` with plan "Pay-As-You-Go AI Tagging".
+
+### Loader (`GET`)
+Returns all PENDING `PendingTag` records for the current shop, ordered by most recent.
+
+### Action (`POST`)
+| Intent | Behavior |
+|--------|----------|
+| `approve` | Calls GraphQL `productUpdate(id, tags)` → `billing.createUsageRecord($0.10)` → status → APPROVED |
+| `reject` | status → REJECTED |
+
+### UI
+Polaris `DataTable` with columns: Image (Thumbnail), Product, Suggested Tags, Actions (Approve + Reject buttons).

@@ -25,7 +25,7 @@
 |-----|-------------|
 | [[01 - Shopify App Spec]] | Routes, database schema, billing, API endpoints |
 | [[02 - n8n Workflow]] | Pipeline architecture, 5 micro-components |
-| [[03 - Agent Configuration]] | Hermes + OpenCode setup, MCP, git workflow |
+| [[03 - Agent Configuration]] | Hermes + OpenCode setup, MCP, autonomous agents |
 
 ### Progress & Decisions
 | Doc | Description |
@@ -46,8 +46,8 @@
 | 0 — Foundation | ✅ | Git, Hermes profile, AGENTS.md, OpenCode config, Obsidian MCP |
 | 1 — Shopify Scaffold | ✅ | React Router app, Prisma, shopify.app.toml (billing + scopes) |
 | 2 — Core Backend | ✅ | PendingTag schema, webhook handler (OpenCode Go), ingestion endpoint |
-| 3 — Approval Panel | 📋 | Planned |
-| 4 — n8n Workflow | 📋 | Planned |
+| 3 — Approval Panel | ✅ | Polaris DataTable, GraphQL + billing, approve/reject |
+| 4 — n8n Workflow | ⏳ | Builder dispatched (subagent running) |
 | 5 — Testing | 📋 | Planned |
 | 6 — Portfolio Polish | 📋 | Planned |
 

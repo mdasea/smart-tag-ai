@@ -59,3 +59,33 @@ Starting with Phase 3, execution shifted to an autonomous subagent pipeline:
   - Reject: status update to REJECTED
   - Empty state, billing enforcement gate
 - Status: ⏳ In progress
+
+
+### Phase 3: Approval Panel (complete)
+- **Builder subagent** dispatched and completed
+- **Architect review** fixed 4 type errors (custom element types, map callback type, secret redaction)
+- **Typecheck:** PASS (0 errors)
+- **Built:**
+  - `app/routes/app._index.tsx` — Polaris DataTable with PENDING products
+  - **Approve:** GraphQL `productUpdate` mutation + `billing.createUsageRecord($0.10)`
+  - **Reject:** status update to REJECTED
+  - Empty state banner, loading states on approve/reject buttons
+  - Shopify custom element types (`s-app-nav`, `s-link`) declared in `globals.d.ts`
+  - Navigation links in `app.tsx` shell
+
+### What's Next
+- **Phase 4:** n8n workflow deployment (Firecrawl → OpenCode Go → Shopify → GHL)
+- **Phase 5:** Integration testing
+- **Phase 6:** Portfolio polish
+
+
+### Phase 4: n8n Workflow (complete)
+- **Install:** Skipped — user has their own n8n instance on a VPS
+- **Workflow JSON:** Created at `n8n/smart-tag-ai-workflow.json` — importable n8n blueprint with 5 nodes:
+  1. Cron trigger (weekly Monday)
+  2. Firecrawl scraper (markdown output)
+  3. OpenCode Go parser (qwen3.7-plus, JSON output)
+  4. Shopify push (ingestion endpoint)
+  5. GoHighLevel sync (parallel branch)
+- **Documentation:** `n8n/README.md` with credential setup and troubleshooting
+- **Next:** User imports JSON into VPS n8n instance

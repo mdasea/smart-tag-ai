@@ -1,0 +1,119 @@
+{
+  "name": "SmartTag AI — Supplier Sync Pipeline",
+  "nodes": [
+    {
+      "id": "cron-trigger",
+      "name": "Weekly Check",
+      "type": "n8n-nodes-base.cron",
+      "typeVersion": 1,
+      "position": [200, 300],
+      "parameters": {
+        "rule": "cron",
+        "value": "0 0 * * 1"
+      }
+    },
+    {
+      "id": "firecrawl-scraper",
+      "name": "Firecrawl Scraper",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [420, 300],
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.firecrawl.dev/v1/scrape",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "{\n  \"url\": \"https://supplier-example.com/products/target\",\n  \"formats\": [\"markdown\"]\n}"
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "firecrawl-api-key",
+          "name": "Firecrawl API Key"
+        }
+      }
+    },
+    {
+      "id": "opencode-go-parser",
+      "name": "OpenCode Go Parser",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [640, 300],
+      "parameters": {
+        "method": "POST",
+        "url": "https://opencode.ai/zen/go/v1/chat/completions",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"model\": \"qwen3.7-plus\",\n  \"messages\": [\n    {\n      \"role\": \"system\",\n      \"content\": \"Parse the following product markdown into a structured JSON object with keys: title, price, body_html. Return ONLY valid JSON, no extra text.\"\n    },\n    {\n      \"role\": \"user\",\n      \"content\": \"{{ $json.data.markdown }}\"\n    }\n  ],\n  \"temperature\": 0.1,\n  \"max_tokens\": 500\n}",
+        "options": {}
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "opencode-go-api-key",
+          "name": "OpenCode Go API Key"
+        }
+      }
+    },
+    {
+      "id": "shopify-ingest",
+      "name": "Push to Shopify App",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [860, 200],
+      "parameters": {
+        "method": "POST",
+        "url": "https://your-shopify-app.ngrok.io/api/ingest-product",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"title\": \"{{ $json.choices[0].message.content.title }}\",\n  \"body_html\": \"{{ $json.choices[0].message.content.body_html }}\",\n  \"price\": \"{{ $json.choices[0].message.content.price }}\"\n}"
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "app-ingest-secret",
+          "name": "App Ingestion Secret"
+        }
+      }
+    },
+    {
+      "id": "ghl-sync",
+      "name": "Sync to GoHighLevel",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [860, 400],
+      "parameters": {
+        "method": "POST",
+        "url": "https://rest.gohighlevel.com/v1/contacts/",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"email\": \"supplier-notifications@example.com\",\n  \"tags\": [\"catalog-synced\"],\n  \"customFields\": {\n    \"last_product_synced\": \"{{ $json.choices[0].message.content.title }}\"\n  }\n}"
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "ghl-api-key",
+          "name": "GoHighLevel API Key"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Weekly Check": {
+      "main": [[{ "node": "Firecrawl Scraper", "type": "main", "index": 0 }]]
+    },
+    "Firecrawl Scraper": {
+      "main": [[{ "node": "OpenCode Go Parser", "type": "main", "index": 0 }]]
+    },
+    "OpenCode Go Parser": {
+      "main": [
+        [{ "node": "Push to Shopify App", "type": "main", "index": 0 }],
+        [{ "node": "Sync to GoHighLevel", "type": "main", "index": 0 }]
+      ]
+    }
+  }
+}
