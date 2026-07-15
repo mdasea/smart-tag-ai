@@ -115,3 +115,17 @@ Starting with Phase 3, execution shifted to an autonomous subagent pipeline:
 - **Nodes:** Schedule Trigger → Firecrawl → OpenCode Go → Shopify Push (parallel with GHL Sync)
 - **Status:** Needs manual credential configuration for 4 HTTP nodes
 - **Local file:** `n8n/smart-tag-ai-workflow.json` (kept as backup/portable version)
+
+
+### Phase 6: Portfolio Polish (complete)
+- **Metrics Dashboard** — `app/routes/app.metrics.tsx` with real-time KPIs (revenue, acceptance rate, quality)
+- **CI/CD** — `.github/workflows/ci.yml` (typecheck on push)
+- **Architecture Diagram** — `docs/architecture.md` (Mermaid)
+- **README** — Full project documentation with structure, stack, links
+- **Case Study** — `docs/case-study.md` outline for blog post
+
+### Remaining
+- **Phase 5: Testing** — Needs n8n credentials configured on VPS + end-to-end test
+- Configure Firecrawl, OpenCode Go, Shopify, GHL credentials in n8n UI
+- Push to GitHub and enable CI
+- Record demo video
