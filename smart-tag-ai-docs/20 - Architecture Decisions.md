@@ -97,3 +97,28 @@
 | `app/routes/api.ingest-product.tsx` | `/api/ingest-product` |
 | `app/routes/app._index.tsx` | `/app` |
 | `app/routes/app.tsx` | `/app` (layout) |
+
+
+---
+
+## ADR-006: Autonomous Subagent Pipeline (delegate_task)
+
+**Date:** 2026-07-15
+**Status:** Accepted
+
+**Context:** Building a full Shopify + n8n pipeline involves many independent phases. Asking the user for every decision slows progress.
+
+**Decision:** Use Hermes `delegate_task` to spawn autonomous subagents for each phase. Each subagent receives complete context (project paths, tech stack, conventions, verification commands) and works independently. Parent agent reviews, commits, and documents results.
+
+**Rationale:**
+- Subagents work in parallel where possible
+- Each subagent has full tool access within its scope
+- Parent agent maintains overall project coherence
+- User only interrupted for critical decisions (API keys, pricing, architecture pivots)
+
+**Execution flow:**
+1. Parent dispatches subagent with complete phase context
+2. Subagent writes code, runs typecheck, fixes errors
+3. Subagent returns summary + verification evidence
+4. Parent reviews, commits, documents in Obsidian
+5. Parent dispatches next phase(s)

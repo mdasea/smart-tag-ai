@@ -38,3 +38,24 @@ See [[20 - Architecture Decisions]] for full ADRs.
 - **No image analysis:** OpenCode Go models are text-only; sufficient for SEO tag generation
 - **Plain fetch over SDK:** OpenCode Go uses OpenAI-compatible API — no extra npm package needed
 - **Usage billing:** Shopify Billing API with `Usage` interval at $0.10/product
+
+
+---
+
+## 2026-07-15 — Phase 3 (Autonomous Execution)
+
+### Architecture: Subagent Pipeline
+Starting with Phase 3, execution shifted to an autonomous subagent pipeline:
+- **Decision model:** `deepseek-v4-pro` (OpenCode Go)
+- **Execution model:** Parent agent dispatches `delegate_task` subagents with complete context
+- **Each subagent** is self-contained: receives full project context, writes code, runs typecheck, reports results
+- **Parent agent** reviews subagent output, commits, updates Obsidian docs
+- **User** only involved for critical decisions (API keys, business terms, direction changes)
+
+### Phase 3: Approval Panel (dispatched)
+- Subagent `deleg_9f58220b` building the Polaris approval panel:
+  - DataTable with PENDING products (Image, Title, Tags, Actions)
+  - Approve: GraphQL productUpdate + billing.createUsageRecord($0.10)
+  - Reject: status update to REJECTED
+  - Empty state, billing enforcement gate
+- Status: ⏳ In progress

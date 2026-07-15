@@ -1,254 +1,191 @@
-import { useEffect } from "react";
-import type {
-  ActionFunctionArgs,
-  HeadersFunction,
-  LoaderFunctionArgs,
-} from "react-router";
-import { useFetcher } from "react-router";
-import { useAppBridge } from "@shopify/app-bridge-react";
+import type { ActionFunctionArgs, LoaderFunctionArgs } from "react-router";
+import { useFetcher, useLoaderData } from "react-router";
+import {
+  Page,
+  Card,
+  DataTable,
+  Button,
+  Thumbnail,
+  Banner,
+  InlineStack,
+  Text,
+  BlockStack,
+} from "@shopify/polaris";
 import { authenticate } from "../shopify.server";
-import { boundary } from "@shopify/shopify-app-react-router/server";
+import db from "../db.server";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
-  await authenticate.admin(request);
+  const auth = await authenticate.admin(request);
+  const billing = auth.billing as any;
+  const session = auth.session;
 
-  return null;
+  await billing.require({
+    plans: ["Pay-As-You-Go AI Tagging"],
+    onFailure: async () =>
+      billing.request({ plan: "Pay-As-You-Go AI Tagging" }),
+  });
+
+  const pendingTags = await db.pendingTag.findMany({
+    where: { shop: session.shop, status: "PENDING" },
+    orderBy: { createdAt: "desc" },
+  });
+
+  return { pendingTags };
 };
 
 export const action = async ({ request }: ActionFunctionArgs) => {
-  const { admin } = await authenticate.admin(request);
-  const color = ["Red", "Orange", "Yellow", "Green"][
-    Math.floor(Math.random() * 4)
-  ];
-  const response = await admin.graphql(
-    `#graphql
-      mutation populateProduct($product: ProductCreateInput!) {
-        productCreate(product: $product) {
+  const auth = await authenticate.admin(request);
+  const admin = auth.admin;
+  const billing = auth.billing as any;
+  const session = auth.session;
+  const formData = await request.formData();
+  const intent = formData.get("intent");
+  const id = formData.get("id") as string;
+
+  const record = await db.pendingTag.findUnique({ where: { id } });
+  if (!record || record.shop !== session.shop) {
+    throw new Response("Not found", { status: 404 });
+  }
+
+  if (intent === "approve") {
+    const response = await admin.graphql(
+      `#graphql
+      mutation productUpdate($input: ProductInput!) {
+        productUpdate(input: $input) {
           product {
             id
-            title
-            handle
-            status
-            variants(first: 10) {
-              edges {
-                node {
-                  id
-                  price
-                  barcode
-                  createdAt
-                }
-              }
-            }
+            tags
+          }
+          userErrors {
+            field
+            message
           }
         }
       }`,
-    {
-      variables: {
-        product: {
-          title: `${color} Snowboard`,
+      {
+        variables: {
+          input: {
+            id: record.productId,
+            tags: record.suggestedTags,
+          },
         },
       },
-    },
-  );
-  const responseJson = await response.json();
+    );
+    const result = await response.json();
 
-  const product = responseJson.data!.productCreate!.product!;
-  const variantId = product.variants.edges[0]!.node!.id!;
+    if (result.data?.productUpdate?.userErrors?.length > 0) {
+      return Response.json(
+        {
+          ok: false,
+          error: result.data.productUpdate.userErrors
+            .map((e: any) => e.message)
+            .join(", "),
+        },
+        { status: 422 },
+      );
+    }
 
-  const variantResponse = await admin.graphql(
-    `#graphql
-    mutation shopifyReactRouterTemplateUpdateVariant($productId: ID!, $variants: [ProductVariantsBulkInput!]!) {
-      productVariantsBulkUpdate(productId: $productId, variants: $variants) {
-        productVariants {
-          id
-          price
-          barcode
-          createdAt
-        }
-      }
-    }`,
-    {
-      variables: {
-        productId: product.id,
-        variants: [{ id: variantId, price: "100.00" }],
-      },
-    },
-  );
+    await billing.createUsageRecord({
+      description: `AI tagging for product: ${record.productTitle}`,
+      price: { amount: 0.1, currencyCode: "USD" },
+      isTest: true,
+    });
 
-  const variantResponseJson = await variantResponse.json();
+    await db.pendingTag.update({
+      where: { id },
+      data: { status: "APPROVED" },
+    });
 
-  return {
-    product: responseJson!.data!.productCreate!.product,
-    variant:
-      variantResponseJson!.data!.productVariantsBulkUpdate!.productVariants,
-  };
+    return Response.json({ ok: true, action: "approved" });
+  }
+
+  if (intent === "reject") {
+    await db.pendingTag.update({
+      where: { id },
+      data: { status: "REJECTED" },
+    });
+    return Response.json({ ok: true, action: "rejected" });
+  }
+
+  return Response.json({ ok: false, error: "Invalid intent" }, { status: 400 });
 };
 
-export default function Index() {
+export default function ApprovalPanel() {
+  const { pendingTags } = useLoaderData<typeof loader>();
   const fetcher = useFetcher<typeof action>();
 
-  const shopify = useAppBridge();
-  const isLoading =
-    ["loading", "submitting"].includes(fetcher.state) &&
-    fetcher.formMethod === "POST";
+  const isLoading = (id: string, intent: string) =>
+    fetcher.state !== "idle" &&
+    fetcher.formData?.get("id") === id &&
+    fetcher.formData?.get("intent") === intent;
 
-  useEffect(() => {
-    if (fetcher.data?.product?.id) {
-      shopify.toast.show("Product created");
-    }
-  }, [fetcher.data?.product?.id, shopify]);
-
-  const generateProduct = () => fetcher.submit({}, { method: "POST" });
+  const rows = pendingTags.map((tag: any) => [
+    <Thumbnail
+      key={`img-${tag.id}`}
+      source={tag.imageUrl || ""}
+      alt={tag.productTitle}
+      size="small"
+    />,
+    <Text key={`title-${tag.id}`} as="span" variant="bodyMd" fontWeight="bold">
+      {tag.productTitle}
+    </Text>,
+    <Text key={`tags-${tag.id}`} as="span" variant="bodySm" tone="subdued">
+      {tag.suggestedTags}
+    </Text>,
+    <InlineStack key={`actions-${tag.id}`} gap="200" align="start">
+      <Button
+        variant="primary"
+        tone="success"
+        loading={isLoading(tag.id, "approve")}
+        onClick={() =>
+          fetcher.submit(
+            { intent: "approve", id: tag.id },
+            { method: "POST" },
+          )
+        }
+      >
+        Approve & Charge $0.10
+      </Button>
+      <Button
+        variant="secondary"
+        tone="critical"
+        loading={isLoading(tag.id, "reject")}
+        onClick={() =>
+          fetcher.submit(
+            { intent: "reject", id: tag.id },
+            { method: "POST" },
+          )
+        }
+      >
+        Reject
+      </Button>
+    </InlineStack>,
+  ]);
 
   return (
-    <s-page heading="Shopify app template">
-      <s-button slot="primary-action" onClick={generateProduct}>
-        Generate a product
-      </s-button>
-
-      <s-section heading="Congrats on creating a new Shopify app 🎉">
-        <s-paragraph>
-          This embedded app template uses{" "}
-          <s-link
-            href="https://shopify.dev/docs/apps/tools/app-bridge"
-            target="_blank"
-          >
-            App Bridge
-          </s-link>{" "}
-          interface examples like an{" "}
-          <s-link href="/app/additional">additional page in the app nav</s-link>
-          , as well as an{" "}
-          <s-link
-            href="https://shopify.dev/docs/api/admin-graphql"
-            target="_blank"
-          >
-            Admin GraphQL
-          </s-link>{" "}
-          mutation demo, to provide a starting point for app development.
-        </s-paragraph>
-      </s-section>
-      <s-section heading="Get started with products">
-        <s-paragraph>
-          Generate a product with GraphQL and get the JSON output for that
-          product. Learn more about the{" "}
-          <s-link
-            href="https://shopify.dev/docs/api/admin-graphql/latest/mutations/productCreate"
-            target="_blank"
-          >
-            productCreate
-          </s-link>{" "}
-          mutation in our API references.
-        </s-paragraph>
-        <s-stack direction="inline" gap="base">
-          <s-button
-            onClick={generateProduct}
-            {...(isLoading ? { loading: true } : {})}
-          >
-            Generate a product
-          </s-button>
-          {fetcher.data?.product && (
-            <s-button
-              onClick={() => {
-                shopify.intents.invoke?.("edit:shopify/Product", {
-                  value: fetcher.data?.product?.id,
-                });
-              }}
-              target="_blank"
-              variant="tertiary"
-            >
-              Edit product
-            </s-button>
-          )}
-        </s-stack>
-        {fetcher.data?.product && (
-          <s-section heading="productCreate mutation">
-            <s-stack direction="block" gap="base">
-              <s-box
-                padding="base"
-                borderWidth="base"
-                borderRadius="base"
-                background="subdued"
-              >
-                <pre style={{ margin: 0 }}>
-                  <code>{JSON.stringify(fetcher.data.product, null, 2)}</code>
-                </pre>
-              </s-box>
-
-              <s-heading>productVariantsBulkUpdate mutation</s-heading>
-              <s-box
-                padding="base"
-                borderWidth="base"
-                borderRadius="base"
-                background="subdued"
-              >
-                <pre style={{ margin: 0 }}>
-                  <code>{JSON.stringify(fetcher.data.variant, null, 2)}</code>
-                </pre>
-              </s-box>
-            </s-stack>
-          </s-section>
-        )}
-      </s-section>
-
-      <s-section slot="aside" heading="App template specs">
-        <s-paragraph>
-          <s-text>Framework: </s-text>
-          <s-link href="https://reactrouter.com/" target="_blank">
-            React Router
-          </s-link>
-        </s-paragraph>
-        <s-paragraph>
-          <s-text>Interface: </s-text>
-          <s-link
-            href="https://shopify.dev/docs/api/app-home/using-polaris-components"
-            target="_blank"
-          >
-            Polaris web components
-          </s-link>
-        </s-paragraph>
-        <s-paragraph>
-          <s-text>API: </s-text>
-          <s-link
-            href="https://shopify.dev/docs/api/admin-graphql"
-            target="_blank"
-          >
-            GraphQL
-          </s-link>
-        </s-paragraph>
-        <s-paragraph>
-          <s-text>Database: </s-text>
-          <s-link href="https://www.prisma.io/" target="_blank">
-            Prisma
-          </s-link>
-        </s-paragraph>
-      </s-section>
-
-      <s-section slot="aside" heading="Next steps">
-        <s-unordered-list>
-          <s-list-item>
-            Build an{" "}
-            <s-link
-              href="https://shopify.dev/docs/apps/getting-started/build-app-example"
-              target="_blank"
-            >
-              example app
-            </s-link>
-          </s-list-item>
-          <s-list-item>
-            Explore Shopify&apos;s API with{" "}
-            <s-link
-              href="https://shopify.dev/docs/apps/tools/graphiql-admin-api"
-              target="_blank"
-            >
-              GraphiQL
-            </s-link>
-          </s-list-item>
-        </s-unordered-list>
-      </s-section>
-    </s-page>
+    <Page title="AI Tag Approval">
+      {pendingTags.length === 0 ? (
+        <Banner tone="info" title="All caught up!">
+          <p>
+            No products are pending AI tag approval. When new products are
+            created, they will appear here for review.
+          </p>
+        </Banner>
+      ) : (
+        <BlockStack gap="400">
+          <Text as="h2" variant="headingMd">
+            {pendingTags.length} product{pendingTags.length !== 1 ? "s" : ""}{" "}
+            awaiting approval
+          </Text>
+          <Card padding="0">
+            <DataTable
+              columnContentTypes={["text", "text", "text", "text"]}
+              headings={["Image", "Product", "Suggested Tags", "Actions"]}
+              rows={rows}
+            />
+          </Card>
+        </BlockStack>
+      )}
+    </Page>
   );
 }
-
-export const headers: HeadersFunction = (headersArgs) => {
-  return boundary.headers(headersArgs);
-};
