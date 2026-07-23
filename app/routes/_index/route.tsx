@@ -1,5 +1,5 @@
 import type { LoaderFunctionArgs } from "react-router";
-import { redirect, Form, useLoaderData } from "react-router";
+import { Form, useLoaderData } from "react-router";
 
 import { login } from "../../shopify.server";
 
@@ -9,21 +9,36 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   const url = new URL(request.url);
 
   if (url.searchParams.get("shop")) {
-    throw redirect(`/app?${url.searchParams.toString()}`);
+    return { showForm: false, embedded: true };
   }
 
-  return { showForm: Boolean(login) };
+  return { showForm: Boolean(login), embedded: false };
 };
 
 export default function App() {
-  const { showForm } = useLoaderData<typeof loader>();
+  const { showForm, embedded } = useLoaderData<typeof loader>();
+
+  if (embedded) {
+    return (
+      <div className={styles.index}>
+        <div className={styles.content}>
+          <p>Loading SmartTag AI...</p>
+          <script
+            dangerouslySetInnerHTML={{
+              __html: `window.location.replace('/app' + window.location.search);`,
+            }}
+          />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className={styles.index}>
       <div className={styles.content}>
-        <h1 className={styles.heading}>A short heading about [your app]</h1>
+        <h1 className={styles.heading}>SmartTag AI</h1>
         <p className={styles.text}>
-          A tagline about [your app] that describes your value proposition.
+          AI-powered SEO tag generation for your Shopify products. Scans products, generates optimized tags, and lets you approve before they go live.
         </p>
         {showForm && (
           <Form className={styles.form} method="post" action="/auth/login">
@@ -38,18 +53,9 @@ export default function App() {
           </Form>
         )}
         <ul className={styles.list}>
-          <li>
-            <strong>Product feature</strong>. Some detail about your feature and
-            its benefit to your customer.
-          </li>
-          <li>
-            <strong>Product feature</strong>. Some detail about your feature and
-            its benefit to your customer.
-          </li>
-          <li>
-            <strong>Product feature</strong>. Some detail about your feature and
-            its benefit to your customer.
-          </li>
+          <li><strong>AI Tag Generation</strong>. 5 SEO-optimized tags from product title + description.</li>
+          <li><strong>Approval Queue</strong>. Review and approve AI tags before they go live.</li>
+          <li><strong>Usage Billing</strong>. $0.10 per approved tag, first 10 free.</li>
         </ul>
       </div>
     </div>

@@ -2,12 +2,11 @@
 
 client_id = "7665c4437ae55abc4fbb61fbb518551c"
 name = "SmartTag AI"
-application_url = "https://shopify.dev/apps/default-app-home"
+application_url = "https://smart-tag-ai.monching-desierto.space"
 embedded = true
 
-[access_scopes]
-# Learn more at https://shopify.dev/docs/apps/tools/cli/configuration#access_scopes
-scopes = "read_products, write_products"
+[build]
+automatically_update_urls_on_dev = true
 
 [webhooks]
 api_version = "2026-10"
@@ -20,13 +19,12 @@ api_version = "2026-10"
   uri = "/webhooks/app/scopes_update"
   topics = [ "app/scopes_update" ]
 
-  [[webhooks.subscriptions]]
-  uri = "/api/webhooks"
-  topics = [ "products/create" ]
+[access_scopes]
+# Learn more at https://shopify.dev/docs/apps/tools/cli/configuration#access_scopes
+scopes = "read_products,write_products"
+
+[access]
+embedded_app_direct_api_access = true
 
 [auth]
-redirect_urls = [ "https://shopify.dev/apps/default-app-home/api/auth" ]
-
-[build]
-include_config_on_deploy = true
-automatically_update_urls_on_dev = true
+redirect_urls = [ "https://smart-tag-ai.monching-desierto.space/auth/callback" ]

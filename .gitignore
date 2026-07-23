@@ -50,3 +50,5 @@ n8n/.n8n/
 # Docs
 docs/demo.mp4
 docs/demo.gif
+
+.vercel

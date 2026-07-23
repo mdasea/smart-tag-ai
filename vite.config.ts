@@ -37,7 +37,7 @@ if (host === "localhost") {
 
 export default defineConfig({
   server: {
-    allowedHosts: [host],
+    allowedHosts: [host, "smart-tag-ai.monching-desierto.space"],
     cors: {
       preflightContinue: true,
     },
